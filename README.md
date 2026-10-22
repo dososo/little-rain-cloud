@@ -10,6 +10,8 @@ A fox walks across the desert under a rain cloud that only rains on it. Wherever
 
 A playable web demo: real-time three.js, one page, no build step. Code written by Claude Opus 5.5 in Claude Code.
 
+**在线试玩 / Play online：https://dososo.github.io/little-rain-cloud/**（电脑上用 Chrome 打开效果最好 / best in desktop Chrome）
+
 宣传片 / Trailer：见 [Releases](../../releases)。
 
 ## 运行 · Run
