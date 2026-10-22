@@ -1,0 +1,7 @@
+# local media and packages (published as GitHub Release assets instead)
+release/
+*.zip
+*.mp4
+*.webm
+.DS_Store
+node_modules/

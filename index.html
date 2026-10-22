@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>小雨云</title>
+<style>
+  :root {
+    --ink: #f3ede2;
+    --ink-dim: rgba(243, 237, 226, 0.58);
+    --panel: rgba(22, 18, 14, 0.62);
+    --line: rgba(255, 240, 220, 0.14);
+    --accent: #e9c27a;
+  }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #120e0a; color: var(--ink);
+    font-family: "PingFang SC", "Noto Sans SC", "Hiragino Sans GB", system-ui, sans-serif; }
+  #app canvas { display: block; }
+  .chips { position: fixed; top: 16px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; pointer-events: none; }
+  .chip { padding: 5px 12px; border-radius: 999px; background: var(--panel); border: 1px solid var(--line);
+    font-size: 12px; letter-spacing: .04em; white-space: nowrap; }
+  .chip b { font-weight: 500; color: var(--accent); }
+  .title { position: fixed; top: 18px; left: 22px; pointer-events: none; }
+  .title h1 { margin: 0; font-size: 18px; font-weight: 500; letter-spacing: .3em; }
+  .title p { margin: 4px 0 0; font-size: 11px; color: var(--ink-dim); letter-spacing: .18em; }
+  .panel { position: fixed; right: 18px; bottom: 18px; width: 248px; padding: 14px 16px 12px; border-radius: 10px;
+    background: var(--panel); border: 1px solid var(--line); font-size: 12.5px; transition: opacity .4s; }
+  .panel.hidden { opacity: 0; pointer-events: none; }
+  .row { display: flex; align-items: center; justify-content: space-between; padding: 4px 0; }
+  .keys { display: flex; gap: 4px; min-width: 96px; justify-content: flex-end; }
+  .k { min-width: 22px; height: 22px; padding: 0 6px; box-sizing: border-box; border: 1px solid var(--line); border-radius: 4px;
+    display: inline-flex; align-items: center; justify-content: center; font-size: 11px; color: var(--ink); background: rgba(255,255,255,.04); }
+  .k.on { border-color: var(--accent); color: var(--accent); }
+  .k.press { background: var(--accent); border-color: var(--accent); color: #1a140e; }
+  #cap { position: fixed; bottom: 56px; left: 50%; transform: translateX(-50%); padding: 8px 18px; border-radius: 6px;
+    background: rgba(22, 18, 14, 0.7); font-size: 19px; letter-spacing: .12em; white-space: nowrap; opacity: 0; transition: opacity .35s; }
+  #cap b { color: var(--accent); font-weight: 500; margin-right: 10px; }
+  #endcard { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    background: rgba(10, 9, 12, 0.5); opacity: 0; transition: opacity .8s; pointer-events: none; text-align: center; }
+  #endcard h2 { margin: 0; font-size: 46px; font-weight: 400; letter-spacing: .5em; padding-left: .5em; }
+  #endcard .en { margin-top: 10px; font-size: 14px; letter-spacing: .4em; color: var(--ink-dim); }
+  #endcard .l1 { margin-top: 34px; font-size: 22px; letter-spacing: .14em; }
+  #endcard .l2 { margin-top: 14px; font-size: 15px; letter-spacing: .08em; color: var(--ink-dim); }
+  .lbl { flex: 1; color: var(--ink-dim); padding-left: 12px; }
+  .lbl em { font-style: normal; color: var(--ink); margin-left: 4px; }
+  .foot { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line); font-size: 10.5px; color: var(--ink-dim); line-height: 1.6; }
+  .hint { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); font-size: 12px; color: var(--ink-dim);
+    letter-spacing: .12em; pointer-events: none; transition: opacity .6s; white-space: nowrap; }
+  #loading { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    background: #120e0a; transition: opacity 1.2s; z-index: 10; }
+  #loading h1 { font-weight: 400; font-size: 28px; letter-spacing: .6em; margin: 0 0 0 .6em; }
+  #loading p { color: var(--ink-dim); font-size: 12px; letter-spacing: .2em; margin-top: 14px; }
+  #rec { position: fixed; top: 18px; right: 22px; font-size: 12px; color: #e8826a; display: none; letter-spacing: .1em; }
+  /* cover mode (?cover=day|night): vertical Noto Serif SC title, seal, credit at the foot */
+  #cover { position: fixed; inset: 0; display: none; pointer-events: none; color: #F6F0E6;
+    --veil: rgba(46, 26, 12, 0.46); --seal: #9E4B3B; font-family: "Noto Serif SC", "Songti SC", serif; }
+  #cover.night { --veil: rgba(10, 10, 18, 0.5); }
+  #cover .veil { position: absolute; inset: 0; background: radial-gradient(ellipse 70% 62% at 6% 4%, var(--veil), transparent 74%),
+    radial-gradient(ellipse 60% 18% at 8% 98%, var(--veil), transparent 82%); }
+  #cover .block { position: absolute; left: 8vmin; top: 8.5vmin; display: flex; flex-direction: row-reverse; align-items: flex-start; gap: 3.6vmin; }
+  #cover .stack { display: flex; flex-direction: column; align-items: center; }
+  #cover .ct { writing-mode: vertical-rl; font-size: 15vmin; font-weight: 500; letter-spacing: .14em; line-height: 1; }
+  #cover .seal { width: 5.6vmin; height: 5.6vmin; margin-top: 2.4vmin; background: var(--seal); color: #F6F0E6; border-radius: .4vmin;
+    display: flex; align-items: center; justify-content: center; font-size: 3.7vmin; font-weight: 500; }
+  #cover .cs { writing-mode: vertical-rl; font-size: 3.3vmin; font-weight: 500; letter-spacing: .32em; line-height: 1; margin-top: 1.6vmin; }
+  #cover .cs .gap { display: inline-block; height: 2.6vmin; }
+  #cover .cc { position: absolute; left: 8vmin; bottom: 6.5vmin; font-family: "Cormorant Garamond", serif; font-weight: 500;
+    font-size: 2.2vmin; letter-spacing: .3em; opacity: .9; }
+  @media (max-width: 720px) { .panel { display: none; } .hint { font-size: 11px; } }
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;1,400&family=Noto+Serif+SC:wght@400;500&display=block" rel="stylesheet">
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<div id="app"></div>
+<div class="title"><h1>小雨云</h1><p>LITTLE RAIN CLOUD</p></div>
+<div class="chips">
+  <div class="chip">绿洲 <b id="area">0</b> m²</div>
+  <div class="chip" id="tod">白天</div>
+  <div class="chip" id="state">休息</div>
+</div>
+<div id="rec">● 录制中</div>
+<div class="panel" id="panel">
+  <div class="row"><span class="keys"><span class="k">W</span><span class="k">A</span><span class="k">S</span><span class="k">D</span></span><span class="lbl">行走</span></div>
+  <div class="row"><span class="keys"><span class="k">Shift</span></span><span class="lbl">奔跑</span></div>
+  <div class="row"><span class="keys"><span class="k">点击</span></span><span class="lbl">走到那里</span></div>
+  <div class="row"><span class="keys"><span class="k">拖动</span></span><span class="lbl">环绕镜头</span></div>
+  <div class="row"><span class="keys"><span class="k">滚轮</span></span><span class="lbl">镜头远近</span></div>
+  <div class="row"><span class="keys"><span class="k">E</span></span><span class="lbl">呼唤小云</span></div>
+  <div class="row"><span class="keys"><span class="k" id="kR">R</span></span><span class="lbl">昼 / 夜<em id="lR">白天</em></span></div>
+  <div class="row"><span class="keys"><span class="k">G</span></span><span class="lbl">一阵风</span></div>
+  <div class="row"><span class="keys"><span class="k" id="kC">C</span></span><span class="lbl">回望来路<em id="lC">关</em></span></div>
+  <div class="row"><span class="keys"><span class="k" id="kV">V</span></span><span class="lbl">录制视频<em id="lV">关</em></span></div>
+  <div class="row"><span class="keys"><span class="k on" id="kM">M</span></span><span class="lbl">声音<em id="lM">开</em></span></div>
+  <div class="row"><span class="keys"><span class="k" id="q1">1</span><span class="k" id="q2">2</span><span class="k on" id="q3">3</span></span><span class="lbl">画质<em id="lQ">高</em></span></div>
+  <div class="row"><span class="keys"><span class="k">H</span></span><span class="lbl">隐藏面板</span></div>
+  <div class="foot">狐狸模型 PixelMannen（CC0）· 绑骨动画 tomkranis（CC BY 4.0）· glTF 转换 AsoboStudio、scurest（CC BY 4.0）</div>
+</div>
+<div class="hint" id="hint">带着小云走一走 · 按 C 回望你走出的绿洲</div>
+<div id="cover"><div class="veil"></div>
+  <div class="block"><div class="stack"><div class="ct">小雨云</div><div class="seal">雨</div></div><div class="cs">一小时<span class="gap"></span>一个能玩的世界</div></div>
+  <div class="cc">MADE WITH CLAUDE OPUS 5.5 · THREE.JS</div></div>
+<div id="cap"></div>
+<div id="endcard"><h2>小雨云</h2><div class="en">LITTLE RAIN CLOUD</div>
+  <div class="l1">不到一小时，从零做出一个可以玩的世界</div>
+  <div class="l2">Claude Opus 5.5 写全部代码 · three.js 实时渲染 · 狐狸模型 Khronos Fox（CC0 / CC BY 4.0）</div></div>
+<div id="loading"><h1>小雨云</h1><p>云正在赶来</p></div>
+<script type="module" src="./main.js"></script>
+</body>
+</html>
